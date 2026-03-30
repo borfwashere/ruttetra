@@ -214,14 +214,32 @@
         };
         container.onwheel = (e) => { camera.position.z += e.deltaY * 0.5; e.preventDefault(); };
 
+        autoLoadWelcome();
         animate();
+    }
+
+    function autoLoadWelcome() {
+        // CORRECCIÓN DE SEGURIDAD: Permite leer píxeles de archivos locales
+        videoEl.crossOrigin = "anonymous"; 
+        
+        sourceType = 'video';
+        videoEl.src = "welcome_video.mp4";
+        videoEl.load();
+        videoEl.play().then(() => {
+            statusEl.innerText = "WELCOME ACTIVE";
+        }).catch(err => {
+            sourceType = null;
+            statusEl.innerText = "READY";
+        });
+        videoEl.onloadedmetadata = () => { 
+            setupProcessingCanvas(videoEl.videoWidth, videoEl.videoHeight); 
+        };
     }
 
     function handleMediaLoad(e) {
         const file = e.target.files[0];
         if (!file) return;
 
-        // Validar tipo de archivo
         const validTypes = ['image/jpeg', 'image/png', 'video/mp4'];
         if (!validTypes.includes(file.type)) {
             statusEl.innerText = "SÓLO PNG/JPG/MP4";
@@ -238,11 +256,15 @@
         const fileUrl = URL.createObjectURL(file);
 
         if (file.type === 'video/mp4') {
-            sourceType = 'video'; videoEl.src = fileUrl; videoEl.play();
+            sourceType = 'video'; 
+            videoEl.crossOrigin = "anonymous";
+            videoEl.src = fileUrl; 
+            videoEl.play();
             videoEl.onloadedmetadata = () => { setupProcessingCanvas(videoEl.videoWidth, videoEl.videoHeight); statusEl.innerText = "VIDEO ACTIVE"; };
         } else {
             sourceType = 'image';
             const img = new Image();
+            img.crossOrigin = "anonymous";
             img.onload = () => {
                 setupProcessingCanvas(img.width, img.height);
                 procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height);
@@ -260,39 +282,44 @@
     function updateGeometry() {
         if (isProcessing) return;
         isProcessing = true;
-        const imgW = procCanvas.width, imgH = procCanvas.height;
-        const imgData = procCtx.getImageData(0, 0, imgW, imgH).data;
+        
+        try {
+            const imgW = procCanvas.width, imgH = procCanvas.height;
+            const imgData = procCtx.getImageData(0, 0, imgW, imgH).data;
 
-        while(linesGroup.children.length > 0) {
-            const line = linesGroup.children[0];
-            line.geometry.dispose();
-            linesGroup.remove(line);
-        }
+            while(linesGroup.children.length > 0) {
+                const line = linesGroup.children[0];
+                line.geometry.dispose();
+                linesGroup.remove(line);
+            }
 
-        const material = new THREE.LineBasicMaterial({ vertexColors: true });
+            const material = new THREE.LineBasicMaterial({ vertexColors: true });
 
-        for (let y = 0; y < imgH; y += params.spacing) {
-            const points = [], colors = [];
-            for (let x = 0; x < imgW; x += 2) {
-                const i = (Math.floor(y) * imgW + x) * 4;
-                const r = imgData[i]/255, g = imgData[i+1]/255, b = imgData[i+2]/255;
-                const avg = (r + g + b) / 3;
-                const z = avg * params.depth;
-                points.push(new THREE.Vector3((x - imgW/2) * params.scale, (imgH/2 - y) * params.scale, z));
-                const color = new THREE.Color();
-                if (params.mode === 'color') {
-                    color.setRGB(Math.min(1, r*params.bright), Math.min(1, g*params.bright), Math.min(1, b*params.bright));
-                } else {
-                    const intense = Math.min(1, avg * params.bright);
-                    color.setRGB(intense, intense, intense);
+            for (let y = 0; y < imgH; y += params.spacing) {
+                const points = [], colors = [];
+                for (let x = 0; x < imgW; x += 2) {
+                    const i = (Math.floor(y) * imgW + x) * 4;
+                    const r = imgData[i]/255, g = imgData[i+1]/255, b = imgData[i+2]/255;
+                    const avg = (r + g + b) / 3;
+                    const z = avg * params.depth;
+                    points.push(new THREE.Vector3((x - imgW/2) * params.scale, (imgH/2 - y) * params.scale, z));
+                    const color = new THREE.Color();
+                    if (params.mode === 'color') {
+                        color.setRGB(Math.min(1, r*params.bright), Math.min(1, g*params.bright), Math.min(1, b*params.bright));
+                    } else {
+                        const intense = Math.min(1, avg * params.bright);
+                        color.setRGB(intense, intense, intense);
+                    }
+                    colors.push(color.r, color.g, color.b);
                 }
-                colors.push(color.r, color.g, color.b);
+                if (points.length > 1) {
+                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+                    linesGroup.add(new THREE.Line(geometry, material));
+                }
             }
-            if (points.length > 1) {
-                const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                linesGroup.add(new THREE.Line(geometry, material));
-            }
+        } catch (e) {
+            console.error("Error de acceso a datos:", e);
         }
         isProcessing = false;
     }
