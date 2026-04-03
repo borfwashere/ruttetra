@@ -2,50 +2,123 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rutt-Etra Studio v1.7 - Borsec Francisco</title>
     <style>
-        /* BASE WINDOWS 98 */
-        body { margin: 0; background: #018281; font-family: 'MS Sans Serif', Arial, sans-serif; overflow: hidden; display: flex; align-items: center; justify-content: center; height: 100vh; }
+        /* FIX DE SCROLL Y BLOQUEO DE PANTALLA */
+        * { touch-action: none; box-sizing: border-box; }
         
-        /* VENTANA COMPACTA Y VERTICAL */
-        .window { width: 600px; height: 90vh; background: #c0c0c0; border: 2px solid #fff; box-shadow: 2px 2px 0px #000; display: flex; flex-direction: column; padding: 2px; }
-        .title-bar { background: linear-gradient(90deg, #000080, #1084d0); padding: 3px 5px; display: flex; justify-content: space-between; color: white; font-weight: bold; font-size: 11px; cursor: default; }
-        #viewport { flex-grow: 1; background: #000; margin: 5px; border: 3px inset #fff; position: relative; cursor: move; }
-        
-        /* GUI PANEL ORGANIZADO VERTICALMENTE */
-        .gui-panel { background: #c0c0c0; padding: 10px; border-top: 2px solid #fff; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 10px; }
-        .control-group { border: 2px groove #fff; padding: 12px 8px; position: relative; display: flex; flex-direction: column; gap: 8px; align-items: center; }
-        .group-label { position: absolute; top: -7px; left: 8px; background: #c0c0c0; padding: 0 3px; font-weight: bold; font-size: 9px; }
+        body { 
+            margin: 0; 
+            background: #018281; 
+            font-family: 'MS Sans Serif', Arial, sans-serif; 
+            overflow: hidden; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            height: 100vh;
+            width: 100vw;
+            position: fixed;
+        }
 
-        /* BOTONES MINIMALISTAS NEGROS */
+        /* CONTENEDOR DE ESCALA PARA MÓVIL */
+        .scaler {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 100%;
+            height: 100%;
+        }
+        
+        /* VENTANA ORIGINAL CON PRESERVACIÓN DE ESTILO */
+        .window { 
+            width: 600px; 
+            height: 90vh; 
+            background: #c0c0c0; 
+            border: 2px solid #fff; 
+            box-shadow: 2px 2px 0px #000; 
+            display: flex; 
+            flex-direction: column; 
+            padding: 2px;
+            position: relative;
+        }
+
+        .title-bar { 
+            background: linear-gradient(90deg, #000080, #1084d0); 
+            padding: 3px 5px; 
+            display: flex; 
+            justify-content: space-between; 
+            color: white; 
+            font-weight: bold; 
+            font-size: 11px; 
+            flex-shrink: 0;
+        }
+
+        #viewport { 
+            flex-grow: 1; 
+            background: #000; 
+            margin: 5px; 
+            border: 3px inset #fff; 
+            position: relative; 
+            cursor: move;
+        }
+        
+        .gui-panel { 
+            background: #c0c0c0; 
+            padding: 10px; 
+            border-top: 2px solid #fff; 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 10px; 
+            font-size: 10px; 
+        }
+
+        .control-group { 
+            border: 2px groove #fff; 
+            padding: 12px 8px; 
+            position: relative; 
+            display: flex; 
+            flex-direction: column; 
+            gap: 8px; 
+            align-items: center; 
+        }
+
+        .group-label { 
+            position: absolute; 
+            top: -7px; left: 8px; 
+            background: #c0c0c0; 
+            padding: 0 3px; 
+            font-weight: bold; 
+            font-size: 9px; 
+        }
+
         .win-btn {
-            width: 70px; height: 40px;
+            width: 70px; height: 35px;
             background: #eee;
             border: 3px solid;
             border-color: #fff #666 #666 #fff;
-            box-shadow: 1px 1px 2px rgba(0,0,0,0.2);
             cursor: pointer;
             display: flex; flex-direction: column; align-items: center; justify-content: center;
-            font-size: 9px; font-weight: bold; text-align: center;
-            text-transform: uppercase;
+            font-size: 9px; font-weight: bold;
             color: #000 !important;
         }
+
         .win-btn:active, .active-mode {
             border-color: #666 #fff #fff #666;
-            box-shadow: inset 2px 2px 4px rgba(0,0,0,0.4);
             background: #d4d4d4;
         }
+
         .led-indicator { width: 5px; height: 5px; background: #400; border-radius: 50%; margin-top: 3px; border: 1px solid #222; }
         .active-mode .led-indicator { background: #f00; box-shadow: 0 0 4px #f00; }
 
-        /* SLIDERS VERTICALES COMPACTOS */
+        /* SLIDERS VERTICALES CORREGIDOS */
         .fader-row { display: flex; gap: 15px; justify-content: center; width: 100%; }
         .fader-container { display: flex; flex-direction: column; align-items: center; height: 110px; width: 45px; position: relative; }
         .fader-track { width: 3px; height: 75px; background: #888; border: 1px inset #fff; position: absolute; top: 15px; z-index: 1; }
         
         input[type=range].vertical-fader {
             -webkit-appearance: none;
+            appearance: none;
             width: 75px; height: 30px;
             background: transparent;
             transform: rotate(-90deg);
@@ -53,79 +126,80 @@
             cursor: pointer; z-index: 5;
             margin: 0;
         }
+        
         input[type=range].vertical-fader::-webkit-slider-thumb {
             -webkit-appearance: none;
+            appearance: none;
             width: 16px; height: 28px;
             background: #222;
             border: 2px solid #555;
             box-shadow: 2px 0 3px rgba(0,0,0,0.5);
         }
 
-        #status { color: #000; font-weight: bold; font-size: 8px; margin-top: 2px; text-align: center; }
-        .limit-info { font-size: 7px; color: #444; margin-top: 2px; text-align: center; }
-        label { font-size: 8px; font-weight: bold; margin-bottom: 10px; }
+        #status { color: #000; font-weight: bold; font-size: 8px; text-align: center; margin-top: 2px; }
         .val-display { font-family: monospace; color: #000; font-size: 9px; margin-top: 85px; }
     </style>
 </head>
 <body oncontextmenu="return false;">
 
-<div class="window">
-    <div class="title-bar"><span>RuttEtra_Studio_v1.7.exe</span></div>
-    <div id="viewport"></div>
+<div class="scaler" id="main-scaler">
+    <div class="window" id="win">
+        <div class="title-bar"><span>RuttEtra_Studio_v1.7.exe</span></div>
+        <div id="viewport"></div>
 
-    <div class="gui-panel">
-        <div class="control-group">
-            <span class="group-label">Source</span>
-            <button class="win-btn" onclick="document.getElementById('file-input').click()">LOAD MEDIA</button>
-            <span class="limit-info">MAX 5MB<br>PNG, JPG, MP4</span>
-            <div id="status">READY</div>
-            <div style="display:flex; gap:5px; margin-top:5px;">
-                <button id="btnColor" class="win-btn active-mode">RGB<div class="led-indicator"></div></button>
-                <button id="btnBW" class="win-btn">B&N<div class="led-indicator"></div></button>
+        <div class="gui-panel">
+            <div class="control-group">
+                <span class="group-label">Source</span>
+                <button class="win-btn" onclick="document.getElementById('file-input').click()">LOAD MEDIA</button>
+                <div id="status">READY</div>
+                <div style="display:flex; gap:5px; margin-top:5px;">
+                    <button id="btnColor" class="win-btn active-mode">RGB<div class="led-indicator"></div></button>
+                    <button id="btnBW" class="win-btn">B&N<div class="led-indicator"></div></button>
+                </div>
+                <input type="file" id="file-input" style="display:none" accept="image/jpeg, image/png, video/mp4">
             </div>
-            <input type="file" id="file-input" style="display:none" accept="image/jpeg, image/png, video/mp4">
-        </div>
 
-        <div class="control-group">
-            <span class="group-label">Geometry</span>
-            <div class="fader-row">
-                <div class="fader-container">
-                    <label>SPACE</label>
-                    <div class="fader-track"></div>
-                    <input type="range" id="spacing" class="vertical-fader" min="3" max="20" value="6">
-                    <span class="val-display" id="v-spacing">6</span>
-                </div>
-                <div class="fader-container">
-                    <label>SCALE</label>
-                    <div class="fader-track"></div>
-                    <input type="range" id="scale" class="vertical-fader" min="0.1" max="4" step="0.1" value="2.5">
-                    <span class="val-display" id="v-scale">2.5</span>
-                </div>
-            </div>
-        </div>
-
-        <div class="control-group">
-            <span class="group-label">Visuals</span>
-            <div class="fader-row">
-                <div class="fader-container">
-                    <label>BRIGHT</label>
-                    <div class="fader-track"></div>
-                    <input type="range" id="bright" class="vertical-fader" min="0" max="2" step="0.1" value="1">
-                    <span class="val-display" id="v-bright">1.0</span>
-                </div>
-                <div class="fader-container">
-                    <label>DEPTH</label>
-                    <div class="fader-track"></div>
-                    <input type="range" id="depth" class="vertical-fader" min="-300" max="300" value="77">
-                    <span class="val-display" id="v-depth">77</span>
+            <div class="control-group">
+                <span class="group-label">Geometry</span>
+                <div class="fader-row">
+                    <div class="fader-container">
+                        <label style="font-size:8px; font-weight:bold;">SPACE</label>
+                        <div class="fader-track"></div>
+                        <input type="range" id="spacing" class="vertical-fader" min="3" max="20" value="6">
+                        <span class="val-display" id="v-spacing">6</span>
+                    </div>
+                    <div class="fader-container">
+                        <label style="font-size:8px; font-weight:bold;">SCALE</label>
+                        <div class="fader-track"></div>
+                        <input type="range" id="scale" class="vertical-fader" min="0.1" max="4" step="0.1" value="2.5">
+                        <span class="val-display" id="v-scale">2.5</span>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="control-group">
-            <span class="group-label">System</span>
-            <button id="btnSnap" class="win-btn" style="width: 90%; height: 35px;">SNAP FRAME</button>
-            <button id="btnReset" class="win-btn" style="width: 90%; height: 35px; margin-top: 5px;">RESET PRESET</button>
+            <div class="control-group">
+                <span class="group-label">Visuals</span>
+                <div class="fader-row">
+                    <div class="fader-container">
+                        <label style="font-size:8px; font-weight:bold;">BRIGHT</label>
+                        <div class="fader-track"></div>
+                        <input type="range" id="bright" class="vertical-fader" min="0" max="2" step="0.1" value="1">
+                        <span class="val-display" id="v-bright">1.0</span>
+                    </div>
+                    <div class="fader-container">
+                        <label style="font-size:8px; font-weight:bold;">DEPTH</label>
+                        <div class="fader-track"></div>
+                        <input type="range" id="depth" class="vertical-fader" min="-300" max="300" value="77">
+                        <span class="val-display" id="v-depth">77</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <span class="group-label">System</span>
+                <button id="btnSnap" class="win-btn" style="width: 90%; height: 35px;">SNAP FRAME</button>
+                <button id="btnReset" class="win-btn" style="width: 90%; height: 35px; margin-top: 5px;">RESET</button>
+            </div>
         </div>
     </div>
 </div>
@@ -137,18 +211,27 @@
 
 <script>
     let scene, camera, renderer, linesGroup;
-    const INITIAL_PARAMS = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
-    let params = { ...INITIAL_PARAMS };
+    let params = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
     
     let targetRot = { x: 0, y: 0 }, currRot = { x: 0, y: 0 }, isDown = false, m = { x: 0, y: 0 };
-    
     const videoEl = document.getElementById('hidden-video');
     const procCanvas = document.getElementById('hidden-canvas');
     const procCtx = procCanvas.getContext('2d', { alpha: false });
     const statusEl = document.getElementById('status');
-    
     let sourceType = null, isProcessing = false;
-    const MAX_FILE_SIZE = 5 * 1024 * 1024, PROC_RES = 250;
+    const PROC_RES = 180;
+
+    // AUTO-ESCALADO PARA MÓVILES
+    function handleScaling() {
+        const win = document.getElementById('win');
+        const screenW = window.innerWidth;
+        const screenH = window.innerHeight;
+        const scale = Math.min(screenW / 620, screenH / (window.innerHeight * 0.95), 1);
+        win.style.transform = `scale(${scale})`;
+    }
+
+    window.addEventListener('resize', handleScaling);
+    handleScaling();
 
     init();
 
@@ -161,7 +244,7 @@
         camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 10000);
         camera.position.z = 800;
 
-        renderer = new THREE.WebGLRenderer({ antialias: true, preserveDrawingBuffer: true });
+        renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
         renderer.setSize(container.clientWidth, container.clientHeight);
         container.appendChild(renderer.domElement);
 
@@ -173,153 +256,86 @@
             };
         });
 
-        document.getElementById('btnColor').onclick = () => { params.mode = 'color'; toggleBtn(document.getElementById('btnColor')); if(sourceType==='image') updateGeometry(); };
-        document.getElementById('btnBW').onclick = () => { params.mode = 'bw'; toggleBtn(document.getElementById('btnBW')); if(sourceType==='image') updateGeometry(); };
+        const start = (x, y) => { isDown = true; m.x = x; m.y = y; };
+        const move = (x, y) => {
+            if (!isDown) return;
+            targetRot.y += (x - m.x) * 0.01;
+            targetRot.x += (y - m.y) * 0.01;
+            m.x = x; m.y = y;
+        };
 
-        function toggleBtn(btn) {
-            document.getElementById('btnColor').classList.remove('active-mode');
-            document.getElementById('btnBW').classList.remove('active-mode');
-            btn.classList.add('active-mode');
+        container.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+        window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+        window.addEventListener('mouseup', () => isDown = false);
+        container.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY));
+        window.addEventListener('touchmove', e => { if(isDown) move(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
+        window.addEventListener('touchend', () => isDown = false);
+
+        document.getElementById('btnColor').onclick = () => { params.mode = 'color'; toggleBtn('btnColor'); if(sourceType==='image') updateGeometry(); };
+        document.getElementById('btnBW').onclick = () => { params.mode = 'bw'; toggleBtn('btnBW'); if(sourceType==='image') updateGeometry(); };
+        
+        function toggleBtn(id) {
+            document.getElementById('btnColor').classList.toggle('active-mode', id==='btnColor');
+            document.getElementById('btnBW').classList.toggle('active-mode', id==='btnBW');
         }
 
-        document.getElementById('btnSnap').onclick = () => {
-            renderer.render(scene, camera);
-            const link = document.createElement('a');
-            link.download = `RuttEtra_Borsec_${Date.now()}.png`;
-            link.href = renderer.domElement.toDataURL('image/png');
-            link.click();
-        };
-
-        document.getElementById('btnReset').onclick = () => {
-            params = { ...INITIAL_PARAMS };
-            targetRot = { x: 0, y: 0 };
-            camera.position.z = 800;
-            document.querySelectorAll('input[type=range]').forEach(el => {
-                el.value = params[el.id];
-                document.getElementById('v-'+el.id).innerText = el.value;
-            });
-            toggleBtn(document.getElementById('btnColor'));
-            if(sourceType === 'image') updateGeometry();
-        };
-
         document.getElementById('file-input').onchange = handleMediaLoad;
-
-        container.onmousedown = (e) => { isDown = true; m.x = e.clientX; m.y = e.clientY; };
-        window.onmouseup = () => isDown = false;
-        window.onmousemove = (e) => {
-            if (!isDown) return;
-            targetRot.y += (e.clientX - m.x) * 0.01;
-            targetRot.x += (e.clientY - m.y) * 0.01;
-            m.x = e.clientX; m.y = e.clientY;
-        };
-        container.onwheel = (e) => { camera.position.z += e.deltaY * 0.5; e.preventDefault(); };
+        document.getElementById('btnReset').onclick = () => location.reload();
 
         autoLoadWelcome();
         animate();
     }
 
     function autoLoadWelcome() {
-        // CORRECCIÓN DE SEGURIDAD: Permite leer píxeles de archivos locales
-        videoEl.crossOrigin = "anonymous"; 
-        
-        sourceType = 'video';
+        videoEl.crossOrigin = "anonymous";
         videoEl.src = "welcome_video.mp4";
-        videoEl.load();
-        videoEl.play().then(() => {
-            statusEl.innerText = "WELCOME ACTIVE";
-        }).catch(err => {
-            sourceType = null;
-            statusEl.innerText = "READY";
-        });
-        videoEl.onloadedmetadata = () => { 
-            setupProcessingCanvas(videoEl.videoWidth, videoEl.videoHeight); 
-        };
+        videoEl.play().then(() => { sourceType = 'video'; statusEl.innerText = "ACTIVE"; }).catch(() => {});
+        videoEl.onloadedmetadata = () => { setupCanvas(videoEl.videoWidth, videoEl.videoHeight); };
     }
 
     function handleMediaLoad(e) {
         const file = e.target.files[0];
         if (!file) return;
-
-        const validTypes = ['image/jpeg', 'image/png', 'video/mp4'];
-        if (!validTypes.includes(file.type)) {
-            statusEl.innerText = "SÓLO PNG/JPG/MP4";
-            return;
-        }
-
-        if (file.size > MAX_FILE_SIZE) { 
-            statusEl.innerText = "EXCEDE 5MB"; 
-            return; 
-        }
-        
-        statusEl.innerText = "LOADING...";
-        videoEl.pause(); videoEl.src = ""; sourceType = null;
-        const fileUrl = URL.createObjectURL(file);
-
-        if (file.type === 'video/mp4') {
-            sourceType = 'video'; 
-            videoEl.crossOrigin = "anonymous";
-            videoEl.src = fileUrl; 
-            videoEl.play();
-            videoEl.onloadedmetadata = () => { setupProcessingCanvas(videoEl.videoWidth, videoEl.videoHeight); statusEl.innerText = "VIDEO ACTIVE"; };
+        const url = URL.createObjectURL(file);
+        if (file.type.includes('video')) {
+            sourceType = 'video'; videoEl.src = url; videoEl.play();
+            videoEl.onloadedmetadata = () => setupCanvas(videoEl.videoWidth, videoEl.videoHeight);
         } else {
             sourceType = 'image';
             const img = new Image();
-            img.crossOrigin = "anonymous";
-            img.onload = () => {
-                setupProcessingCanvas(img.width, img.height);
-                procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height);
-                statusEl.innerText = "IMAGE LOADED"; updateGeometry();
-            };
-            img.src = fileUrl;
+            img.onload = () => { setupCanvas(img.width, img.height); procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height); updateGeometry(); };
+            img.src = url;
         }
     }
 
-    function setupProcessingCanvas(w, h) {
+    function setupCanvas(w, h) {
         procCanvas.width = PROC_RES;
         procCanvas.height = (PROC_RES / w) * h;
     }
 
     function updateGeometry() {
-        if (isProcessing) return;
-        isProcessing = true;
-        
-        try {
-            const imgW = procCanvas.width, imgH = procCanvas.height;
-            const imgData = procCtx.getImageData(0, 0, imgW, imgH).data;
-
-            while(linesGroup.children.length > 0) {
-                const line = linesGroup.children[0];
-                line.geometry.dispose();
-                linesGroup.remove(line);
+        if (isProcessing) return; isProcessing = true;
+        const imgW = procCanvas.width, imgH = procCanvas.height;
+        const data = procCtx.getImageData(0, 0, imgW, imgH).data;
+        while(linesGroup.children.length > 0) {
+            const l = linesGroup.children[0]; l.geometry.dispose(); linesGroup.remove(l);
+        }
+        const mat = new THREE.LineBasicMaterial({ vertexColors: true });
+        for (let y = 0; y < imgH; y += params.spacing) {
+            const pts = [], cols = [];
+            for (let x = 0; x < imgW; x += 2) {
+                const i = (Math.floor(y) * imgW + x) * 4;
+                const r = data[i]/255, g = data[i+1]/255, b = data[i+2]/255, avg = (r+g+b)/3;
+                pts.push(new THREE.Vector3((x - imgW/2) * params.scale, (imgH/2 - y) * params.scale, avg * params.depth));
+                const c = new THREE.Color();
+                params.mode === 'color' ? c.setRGB(r*params.bright, g*params.bright, b*params.bright) : c.setScalar(avg*params.bright);
+                cols.push(c.r, c.g, c.b);
             }
-
-            const material = new THREE.LineBasicMaterial({ vertexColors: true });
-
-            for (let y = 0; y < imgH; y += params.spacing) {
-                const points = [], colors = [];
-                for (let x = 0; x < imgW; x += 2) {
-                    const i = (Math.floor(y) * imgW + x) * 4;
-                    const r = imgData[i]/255, g = imgData[i+1]/255, b = imgData[i+2]/255;
-                    const avg = (r + g + b) / 3;
-                    const z = avg * params.depth;
-                    points.push(new THREE.Vector3((x - imgW/2) * params.scale, (imgH/2 - y) * params.scale, z));
-                    const color = new THREE.Color();
-                    if (params.mode === 'color') {
-                        color.setRGB(Math.min(1, r*params.bright), Math.min(1, g*params.bright), Math.min(1, b*params.bright));
-                    } else {
-                        const intense = Math.min(1, avg * params.bright);
-                        color.setRGB(intense, intense, intense);
-                    }
-                    colors.push(color.r, color.g, color.b);
-                }
-                if (points.length > 1) {
-                    const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                    geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
-                    linesGroup.add(new THREE.Line(geometry, material));
-                }
+            if (pts.length > 1) {
+                const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+                linesGroup.add(new THREE.Line(geo, mat));
             }
-        } catch (e) {
-            console.error("Error de acceso a datos:", e);
         }
         isProcessing = false;
     }
@@ -332,17 +348,9 @@
         }
         currRot.x += (targetRot.x - currRot.x) * 0.1;
         currRot.y += (targetRot.y - currRot.y) * 0.1;
-        linesGroup.rotation.x = currRot.x;
-        linesGroup.rotation.y = currRot.y;
+        linesGroup.rotation.set(currRot.x, currRot.y, 0);
         renderer.render(scene, camera);
     }
-
-    window.onresize = () => {
-        const c = document.getElementById('viewport');
-        camera.aspect = c.clientWidth / c.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(c.clientWidth, c.clientHeight);
-    };
 </script>
 </body>
 </html>
