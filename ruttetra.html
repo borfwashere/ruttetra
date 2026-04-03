@@ -12,7 +12,7 @@
             font-family: 'MS Sans Serif', Arial, sans-serif; 
             overflow: hidden; display: flex; align-items: center; justify-content: center; 
             height: 100vh; width: 100vw; position: fixed;
-            user-select: none; /* Evita selección de texto */
+            user-select: none; /* Evita que seleccionen y copien textos */
         }
 
         .window { 
@@ -80,7 +80,9 @@
         #status { font-size: 9px; font-weight: bold; text-transform: uppercase; margin-top: 2px; }
     </style>
 </head>
-<body oncontextmenu="return false;"> <div class="window">
+<body oncontextmenu="return false;">
+
+<div class="window">
     <div class="title-bar"><span>RuttEtra_Studio_v1.7.exe</span></div>
     <div id="viewport"></div>
     <div class="gui-panel">
@@ -145,9 +147,9 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-    /** PROTECCIÓN ANTISA / ANTI-INSPECCIÓN **/
+    /** CAPA DE PROTECCIÓN PASIVA **/
     (function(){
-        // Bloqueo de teclas calientes
+        // Bloquea F12, Ctrl+Shift+I/J, Ctrl+U
         window.addEventListener('keydown', function(e) {
             if (e.keyCode == 123 || 
                 (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
@@ -156,11 +158,9 @@
                 return false;
             }
         });
-        // Anti-Debugger (Pausa la ejecución si abren consola)
-        setInterval(function(){ debugger; }, 100);
     })();
 
-    /** LÓGICA DE LA APP (OCULTA EN SCOPE LOCAL) **/
+    /** LÓGICA PRINCIPAL **/
     {
         let scene, camera, renderer, linesGroup;
         const DEFAULT_PARAMS = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
@@ -234,7 +234,7 @@
 
             document.getElementById('btnSnap').onclick = () => {
                 const link = document.createElement('a');
-                link.download = 'rutt-etra-snap.png';
+                link.download = 'snap_' + Date.now() + '.png';
                 link.href = renderer.domElement.toDataURL('image/png');
                 link.click();
             };
