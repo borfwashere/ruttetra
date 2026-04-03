@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Rutt-Etra Studio v1.7 - Borsec Francisco</title>
     <style>
-        * { touch-action: manipulation; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         
         body { 
             margin: 0; background: #018281; 
@@ -15,7 +15,8 @@
         }
 
         .window { 
-            width: 96vw; max-width: 800px; height: 96vh; 
+            width: 96vw; max-width: 800px; 
+            height: 92vh; /* Un poco más corta para no pegar con la barra de tareas */
             background: #c0c0c0; border: 2px solid #fff; 
             box-shadow: 2px 2px 0px #000; display: flex; flex-direction: column; padding: 2px;
         }
@@ -29,13 +30,14 @@
         #viewport { 
             flex-grow: 1; background: #000; margin: 4px; 
             border: 3px inset #fff; position: relative; overflow: hidden;
-            cursor: crosshair; touch-action: none;
+            cursor: crosshair; touch-action: none; /* Solo el visor bloquea el touch del sistema */
         }
         
         .gui-panel { 
             background: #c0c0c0; padding: 6px; border-top: 2px solid #fff; 
             display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
-            gap: 6px; flex-shrink: 0; max-height: 45vh; overflow-y: auto;
+            gap: 6px; flex-shrink: 0; max-height: 40vh; overflow-y: auto;
+            touch-action: pan-y; /* Permite scroll vertical en el panel de controles */
         }
 
         .control-group { 
@@ -58,23 +60,24 @@
 
         .win-btn:active, .active-mode { border-color: #666 #fff #fff #666; background: #d4d4d4; }
 
-        .fader-row { display: flex; gap: 10px; justify-content: space-around; width: 100%; height: 80px; }
+        .fader-row { display: flex; gap: 10px; justify-content: space-around; width: 100%; height: 85px; }
         .fader-container { display: flex; flex-direction: column; align-items: center; position: relative; width: 40px; }
         .fader-track { width: 4px; height: 50px; background: #888; border: 1px inset #fff; position: absolute; top: 12px; }
         
         input[type=range].vertical-fader {
             -webkit-appearance: none; appearance: none;
-            width: 50px; height: 20px; background: transparent;
-            transform: rotate(-90deg); position: absolute; top: 28px;
-            cursor: pointer; z-index: 5;
+            width: 50px; height: 30px; background: transparent;
+            transform: rotate(-90deg); position: absolute; top: 25px;
+            cursor: pointer; z-index: 10;
+            touch-action: auto; /* Permite interacción nativa del slider */
         }
         
         input[type=range].vertical-fader::-webkit-slider-thumb {
             -webkit-appearance: none; appearance: none;
-            width: 14px; height: 22px; background: #222; border: 2px solid #777;
+            width: 16px; height: 24px; background: #222; border: 2px solid #777;
         }
 
-        .val-display { font-family: monospace; font-size: 9px; margin-top: 65px; }
+        .val-display { font-family: monospace; font-size: 9px; margin-top: 68px; }
         #status { font-size: 9px; font-weight: bold; text-transform: uppercase; margin-top: 2px; }
     </style>
 </head>
@@ -146,11 +149,10 @@
 
 <script>
     let scene, camera, renderer, linesGroup;
-    // Valores por defecto
     const DEFAULT_PARAMS = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
     let params = { ...DEFAULT_PARAMS };
-    
     let targetRot = { x: 0, y: 0 }, currRot = { x: 0, y: 0 }, isDown = false, m = { x: 0, y: 0 };
+    let initialPinchDist = 0;
     
     const videoEl = document.getElementById('hidden-video');
     const procCanvas = document.getElementById('hidden-canvas');
@@ -175,7 +177,6 @@
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         container.appendChild(renderer.domElement);
 
-        // UI Sliders
         document.querySelectorAll('input[type=range]').forEach(i => {
             i.oninput = (e) => {
                 params[e.target.id] = parseFloat(e.target.value);
@@ -184,7 +185,7 @@
             };
         });
 
-        // Interacción
+        // --- LÓGICA DE CONTROL MEJORADA ---
         const start = (x, y) => { isDown = true; m.x = x; m.y = y; };
         const move = (x, y) => {
             if (!isDown) return;
@@ -193,20 +194,38 @@
             m.x = x; m.y = y;
         };
 
+        const getDist = (t) => Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
+
         container.addEventListener('mousedown', e => start(e.clientX, e.clientY));
         window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
         window.addEventListener('mouseup', () => isDown = false);
-        container.addEventListener('touchstart', e => start(e.touches[0].clientX, e.touches[0].clientY));
-        window.addEventListener('touchmove', e => { if(isDown) move(e.touches[0].clientX, e.touches[0].clientY); e.preventDefault(); }, {passive: false});
-        window.addEventListener('touchend', () => isDown = false);
+        
+        container.addEventListener('touchstart', e => {
+            if (e.touches.length === 2) {
+                initialPinchDist = getDist(e.touches);
+            } else {
+                start(e.touches[0].clientX, e.touches[0].clientY);
+            }
+        }, { passive: false });
+
+        container.addEventListener('touchmove', e => {
+            if (e.touches.length === 2) {
+                let dist = getDist(e.touches);
+                camera.position.z -= (dist - initialPinchDist) * 2;
+                camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
+                initialPinchDist = dist;
+            } else {
+                move(e.touches[0].clientX, e.touches[0].clientY);
+            }
+            e.preventDefault();
+        }, { passive: false });
 
         container.addEventListener('wheel', e => {
             camera.position.z += e.deltaY * 0.5;
             camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
             e.preventDefault();
-        }, {passive: false});
+        }, { passive: false });
 
-        // SNAP
         document.getElementById('btnSnap').onclick = () => {
             const link = document.createElement('a');
             link.download = 'rutt-etra-snap.png';
@@ -214,23 +233,16 @@
             link.click();
         };
 
-        // RESET (SIN RECARGAR PÁGINA)
         document.getElementById('btnReset').onclick = () => {
             params = { ...DEFAULT_PARAMS };
-            // Actualizar Sliders UI
-            Object.keys(params).forEach(key => {
-                const el = document.getElementById(key);
-                if(el) {
-                    el.value = params[key];
-                    document.getElementById('v-'+key).innerText = params[key];
-                }
+            document.querySelectorAll('input[type=range]').forEach(el => {
+                el.value = params[el.id];
+                document.getElementById('v-'+el.id).innerText = params[el.id];
             });
-            // Reset Cámara y Rotación
             camera.position.z = 800;
             targetRot = { x: 0, y: 0 };
             currRot = { x: 0, y: 0 };
             setModeUI('btnColor');
-            // Forzar actualización si es imagen
             if(sourceType === 'image') updateGeometry();
         };
 
@@ -260,7 +272,7 @@
         const url = URL.createObjectURL(file);
         if (file.type.startsWith('video')) {
             sourceType = 'video'; videoEl.src = url; videoEl.play();
-            videoEl.onloadedmetadata = () => { setupCanvas(videoEl.videoWidth, videoEl.videoHeight); statusEl.innerText = "VIDEO"; };
+            videoEl.onloadedmetadata = () => setupCanvas(videoEl.videoWidth, videoEl.videoHeight);
         } else {
             sourceType = 'image';
             const img = new Image();
