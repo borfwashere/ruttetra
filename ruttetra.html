@@ -12,11 +12,11 @@
             font-family: 'MS Sans Serif', Arial, sans-serif; 
             overflow: hidden; display: flex; align-items: center; justify-content: center; 
             height: 100vh; width: 100vw; position: fixed;
+            user-select: none; /* Evita selección de texto */
         }
 
         .window { 
-            width: 96vw; max-width: 800px; 
-            height: 92vh; /* Un poco más corta para no pegar con la barra de tareas */
+            width: 96vw; max-width: 800px; height: 92vh; 
             background: #c0c0c0; border: 2px solid #fff; 
             box-shadow: 2px 2px 0px #000; display: flex; flex-direction: column; padding: 2px;
         }
@@ -30,14 +30,14 @@
         #viewport { 
             flex-grow: 1; background: #000; margin: 4px; 
             border: 3px inset #fff; position: relative; overflow: hidden;
-            cursor: crosshair; touch-action: none; /* Solo el visor bloquea el touch del sistema */
+            cursor: crosshair; touch-action: none;
         }
         
         .gui-panel { 
             background: #c0c0c0; padding: 6px; border-top: 2px solid #fff; 
             display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
             gap: 6px; flex-shrink: 0; max-height: 40vh; overflow-y: auto;
-            touch-action: pan-y; /* Permite scroll vertical en el panel de controles */
+            touch-action: pan-y;
         }
 
         .control-group { 
@@ -68,8 +68,7 @@
             -webkit-appearance: none; appearance: none;
             width: 50px; height: 30px; background: transparent;
             transform: rotate(-90deg); position: absolute; top: 25px;
-            cursor: pointer; z-index: 10;
-            touch-action: auto; /* Permite interacción nativa del slider */
+            cursor: pointer; z-index: 10; touch-action: auto;
         }
         
         input[type=range].vertical-fader::-webkit-slider-thumb {
@@ -81,9 +80,7 @@
         #status { font-size: 9px; font-weight: bold; text-transform: uppercase; margin-top: 2px; }
     </style>
 </head>
-<body>
-
-<div class="window">
+<body oncontextmenu="return false;"> <div class="window">
     <div class="title-bar"><span>RuttEtra_Studio_v1.7.exe</span></div>
     <div id="viewport"></div>
     <div class="gui-panel">
@@ -148,195 +145,207 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-    let scene, camera, renderer, linesGroup;
-    const DEFAULT_PARAMS = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
-    let params = { ...DEFAULT_PARAMS };
-    let targetRot = { x: 0, y: 0 }, currRot = { x: 0, y: 0 }, isDown = false, m = { x: 0, y: 0 };
-    let initialPinchDist = 0;
-    
-    const videoEl = document.getElementById('hidden-video');
-    const procCanvas = document.getElementById('hidden-canvas');
-    const procCtx = procCanvas.getContext('2d', { alpha: false });
-    const statusEl = document.getElementById('status');
-    let sourceType = null, isProcessing = false;
-    const PROC_RES = 160;
+    /** PROTECCIÓN ANTISA / ANTI-INSPECCIÓN **/
+    (function(){
+        // Bloqueo de teclas calientes
+        window.addEventListener('keydown', function(e) {
+            if (e.keyCode == 123 || 
+                (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
+                (e.ctrlKey && e.keyCode == 85)) {
+                e.preventDefault();
+                return false;
+            }
+        });
+        // Anti-Debugger (Pausa la ejecución si abren consola)
+        setInterval(function(){ debugger; }, 100);
+    })();
 
-    init();
-
-    function init() {
-        const container = document.getElementById('viewport');
-        scene = new THREE.Scene();
-        linesGroup = new THREE.Group();
-        scene.add(linesGroup);
+    /** LÓGICA DE LA APP (OCULTA EN SCOPE LOCAL) **/
+    {
+        let scene, camera, renderer, linesGroup;
+        const DEFAULT_PARAMS = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
+        let params = { ...DEFAULT_PARAMS };
+        let targetRot = { x: 0, y: 0 }, currRot = { x: 0, y: 0 }, isDown = false, m = { x: 0, y: 0 };
+        let initialPinchDist = 0;
         
-        camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 10000);
-        camera.position.z = 800;
+        const videoEl = document.getElementById('hidden-video');
+        const procCanvas = document.getElementById('hidden-canvas');
+        const procCtx = procCanvas.getContext('2d', { alpha: false });
+        const statusEl = document.getElementById('status');
+        let sourceType = null, isProcessing = false;
+        const PROC_RES = 160;
 
-        renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
-        renderer.setSize(container.clientWidth, container.clientHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
-        container.appendChild(renderer.domElement);
+        const init = () => {
+            const container = document.getElementById('viewport');
+            scene = new THREE.Scene();
+            linesGroup = new THREE.Group();
+            scene.add(linesGroup);
+            
+            camera = new THREE.PerspectiveCamera(45, container.clientWidth / container.clientHeight, 1, 10000);
+            camera.position.z = 800;
 
-        document.querySelectorAll('input[type=range]').forEach(i => {
-            i.oninput = (e) => {
-                params[e.target.id] = parseFloat(e.target.value);
-                document.getElementById('v-'+e.target.id).innerText = e.target.value;
+            renderer = new THREE.WebGLRenderer({ antialias: false, preserveDrawingBuffer: true });
+            renderer.setSize(container.clientWidth, container.clientHeight);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+            container.appendChild(renderer.domElement);
+
+            document.querySelectorAll('input[type=range]').forEach(i => {
+                i.oninput = (e) => {
+                    params[e.target.id] = parseFloat(e.target.value);
+                    document.getElementById('v-'+e.target.id).innerText = e.target.value;
+                    if(sourceType === 'image') updateGeometry();
+                };
+            });
+
+            const start = (x, y) => { isDown = true; m.x = x; m.y = y; };
+            const move = (x, y) => {
+                if (!isDown) return;
+                targetRot.y += (x - m.x) * 0.01;
+                targetRot.x += (y - m.y) * 0.01;
+                m.x = x; m.y = y;
+            };
+
+            const getDist = (t) => Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
+
+            container.addEventListener('mousedown', e => start(e.clientX, e.clientY));
+            window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
+            window.addEventListener('mouseup', () => isDown = false);
+            
+            container.addEventListener('touchstart', e => {
+                if (e.touches.length === 2) initialPinchDist = getDist(e.touches);
+                else start(e.touches[0].clientX, e.touches[0].clientY);
+            }, { passive: false });
+
+            container.addEventListener('touchmove', e => {
+                if (e.touches.length === 2) {
+                    let dist = getDist(e.touches);
+                    camera.position.z -= (dist - initialPinchDist) * 2;
+                    camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
+                    initialPinchDist = dist;
+                } else move(e.touches[0].clientX, e.touches[0].clientY);
+                e.preventDefault();
+            }, { passive: false });
+
+            container.addEventListener('wheel', e => {
+                camera.position.z += e.deltaY * 0.5;
+                camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
+                e.preventDefault();
+            }, { passive: false });
+
+            document.getElementById('btnSnap').onclick = () => {
+                const link = document.createElement('a');
+                link.download = 'rutt-etra-snap.png';
+                link.href = renderer.domElement.toDataURL('image/png');
+                link.click();
+            };
+
+            document.getElementById('btnReset').onclick = () => {
+                params = { ...DEFAULT_PARAMS };
+                document.querySelectorAll('input[type=range]').forEach(el => {
+                    el.value = params[el.id];
+                    document.getElementById('v-'+el.id).innerText = params[el.id];
+                });
+                camera.position.z = 800;
+                targetRot = { x: 0, y: 0 }; currRot = { x: 0, y: 0 };
+                document.getElementById('btnColor').classList.add('active-mode');
+                document.getElementById('btnBW').classList.remove('active-mode');
                 if(sourceType === 'image') updateGeometry();
             };
-        });
 
-        // --- LÓGICA DE CONTROL MEJORADA ---
-        const start = (x, y) => { isDown = true; m.x = x; m.y = y; };
-        const move = (x, y) => {
-            if (!isDown) return;
-            targetRot.y += (x - m.x) * 0.01;
-            targetRot.x += (y - m.y) * 0.01;
-            m.x = x; m.y = y;
+            document.getElementById('file-input').onchange = handleMediaLoad;
+            document.getElementById('btnColor').onclick = () => { params.mode = 'color'; setModeUI('btnColor'); if(sourceType==='image') updateGeometry(); };
+            document.getElementById('btnBW').onclick = () => { params.mode = 'bw'; setModeUI('btnBW'); if(sourceType==='image') updateGeometry(); };
+
+            autoLoadWelcome();
+            animate();
         };
 
-        const getDist = (t) => Math.hypot(t[0].pageX - t[1].pageX, t[0].pageY - t[1].pageY);
+        const setModeUI = (id) => {
+            document.getElementById('btnColor').classList.toggle('active-mode', id==='btnColor');
+            document.getElementById('btnBW').classList.toggle('active-mode', id==='btnBW');
+        };
 
-        container.addEventListener('mousedown', e => start(e.clientX, e.clientY));
-        window.addEventListener('mousemove', e => move(e.clientX, e.clientY));
-        window.addEventListener('mouseup', () => isDown = false);
-        
-        container.addEventListener('touchstart', e => {
-            if (e.touches.length === 2) {
-                initialPinchDist = getDist(e.touches);
+        const handleMediaLoad = (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+            const url = URL.createObjectURL(file);
+            if (file.type.startsWith('video')) {
+                sourceType = 'video'; videoEl.src = url; videoEl.play();
+                videoEl.onloadedmetadata = () => setupCanvas(videoEl.videoWidth, videoEl.videoHeight);
             } else {
-                start(e.touches[0].clientX, e.touches[0].clientY);
+                sourceType = 'image';
+                const img = new Image();
+                img.onload = () => { 
+                    setupCanvas(img.width, img.height); 
+                    procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height); 
+                    updateGeometry(); 
+                    statusEl.innerText = "IMAGE"; 
+                };
+                img.src = url;
             }
-        }, { passive: false });
-
-        container.addEventListener('touchmove', e => {
-            if (e.touches.length === 2) {
-                let dist = getDist(e.touches);
-                camera.position.z -= (dist - initialPinchDist) * 2;
-                camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
-                initialPinchDist = dist;
-            } else {
-                move(e.touches[0].clientX, e.touches[0].clientY);
-            }
-            e.preventDefault();
-        }, { passive: false });
-
-        container.addEventListener('wheel', e => {
-            camera.position.z += e.deltaY * 0.5;
-            camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
-            e.preventDefault();
-        }, { passive: false });
-
-        document.getElementById('btnSnap').onclick = () => {
-            const link = document.createElement('a');
-            link.download = 'rutt-etra-snap.png';
-            link.href = renderer.domElement.toDataURL('image/png');
-            link.click();
         };
 
-        document.getElementById('btnReset').onclick = () => {
-            params = { ...DEFAULT_PARAMS };
-            document.querySelectorAll('input[type=range]').forEach(el => {
-                el.value = params[el.id];
-                document.getElementById('v-'+el.id).innerText = params[el.id];
-            });
-            camera.position.z = 800;
-            targetRot = { x: 0, y: 0 };
-            currRot = { x: 0, y: 0 };
-            setModeUI('btnColor');
-            if(sourceType === 'image') updateGeometry();
+        const setupCanvas = (w, h) => {
+            procCanvas.width = PROC_RES;
+            procCanvas.height = (PROC_RES / w) * h;
         };
 
-        document.getElementById('file-input').onchange = handleMediaLoad;
-        document.getElementById('btnColor').onclick = () => { params.mode = 'color'; setModeUI('btnColor'); if(sourceType==='image') updateGeometry(); };
-        document.getElementById('btnBW').onclick = () => { params.mode = 'bw'; setModeUI('btnBW'); if(sourceType==='image') updateGeometry(); };
+        const updateGeometry = () => {
+            if (isProcessing) return;
+            isProcessing = true;
+            const imgW = procCanvas.width, imgH = procCanvas.height;
+            const data = procCtx.getImageData(0, 0, imgW, imgH).data;
+            while(linesGroup.children.length > 0) {
+                const l = linesGroup.children[0]; l.geometry.dispose(); linesGroup.remove(l);
+            }
+            const mat = new THREE.LineBasicMaterial({ vertexColors: true });
+            for (let y = 0; y < imgH; y += params.spacing) {
+                const pts = [], cols = [];
+                for (let x = 0; x < imgW; x += 2) {
+                    const i = (Math.floor(y) * imgW + x) * 4;
+                    const r = data[i]/255, g = data[i+1]/255, b = data[i+2]/255, avg = (r+g+b)/3;
+                    pts.push(new THREE.Vector3((x - imgW/2) * params.scale, (imgH/2 - y) * params.scale, avg * params.depth));
+                    const c = new THREE.Color();
+                    params.mode === 'color' ? c.setRGB(r*params.bright, g*params.bright, b*params.bright) : c.setScalar(avg*params.bright);
+                    cols.push(c.r, c.g, c.b);
+                }
+                if (pts.length > 1) {
+                    const geo = new THREE.BufferGeometry().setFromPoints(pts);
+                    geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
+                    linesGroup.add(new THREE.Line(geo, mat));
+                }
+            }
+            isProcessing = false;
+        };
 
-        autoLoadWelcome();
-        animate();
-    }
+        const animate = () => {
+            requestAnimationFrame(animate);
+            if (sourceType === 'video' && videoEl.readyState >= 2) {
+                procCtx.drawImage(videoEl, 0, 0, procCanvas.width, procCanvas.height);
+                updateGeometry();
+            }
+            currRot.x += (targetRot.x - currRot.x) * 0.1;
+            currRot.y += (targetRot.y - currRot.y) * 0.1;
+            linesGroup.rotation.set(currRot.x, currRot.y, 0);
+            renderer.render(scene, camera);
+        };
 
-    function setModeUI(id) {
-        document.getElementById('btnColor').classList.toggle('active-mode', id==='btnColor');
-        document.getElementById('btnBW').classList.toggle('active-mode', id==='btnBW');
-    }
-
-    function autoLoadWelcome() {
-        videoEl.crossOrigin = "anonymous";
-        videoEl.src = "welcome_video.mp4"; 
-        videoEl.play().then(() => { sourceType = 'video'; statusEl.innerText = "LIVE"; }).catch(() => { statusEl.innerText = "READY"; });
-        videoEl.onloadedmetadata = () => setupCanvas(videoEl.videoWidth, videoEl.videoHeight);
-    }
-
-    function handleMediaLoad(e) {
-        const file = e.target.files[0];
-        if (!file) return;
-        const url = URL.createObjectURL(file);
-        if (file.type.startsWith('video')) {
-            sourceType = 'video'; videoEl.src = url; videoEl.play();
+        const autoLoadWelcome = () => {
+            videoEl.crossOrigin = "anonymous";
+            videoEl.src = "welcome_video.mp4"; 
+            videoEl.play().then(() => { sourceType = 'video'; statusEl.innerText = "LIVE"; }).catch(() => { statusEl.innerText = "READY"; });
             videoEl.onloadedmetadata = () => setupCanvas(videoEl.videoWidth, videoEl.videoHeight);
-        } else {
-            sourceType = 'image';
-            const img = new Image();
-            img.onload = () => { 
-                setupCanvas(img.width, img.height); 
-                procCtx.drawImage(img, 0, 0, procCanvas.width, procCanvas.height); 
-                updateGeometry(); 
-                statusEl.innerText = "IMAGE"; 
-            };
-            img.src = url;
-        }
-    }
+        };
 
-    function setupCanvas(w, h) {
-        procCanvas.width = PROC_RES;
-        procCanvas.height = (PROC_RES / w) * h;
-    }
+        window.onresize = () => {
+            const c = document.getElementById('viewport');
+            camera.aspect = c.clientWidth / c.clientHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(c.clientWidth, c.clientHeight);
+        };
 
-    function updateGeometry() {
-        if (isProcessing) return;
-        isProcessing = true;
-        const imgW = procCanvas.width, imgH = procCanvas.height;
-        const data = procCtx.getImageData(0, 0, imgW, imgH).data;
-        while(linesGroup.children.length > 0) {
-            const l = linesGroup.children[0]; l.geometry.dispose(); linesGroup.remove(l);
-        }
-        const mat = new THREE.LineBasicMaterial({ vertexColors: true });
-        for (let y = 0; y < imgH; y += params.spacing) {
-            const pts = [], cols = [];
-            for (let x = 0; x < imgW; x += 2) {
-                const i = (Math.floor(y) * imgW + x) * 4;
-                const r = data[i]/255, g = data[i+1]/255, b = data[i+2]/255, avg = (r+g+b)/3;
-                pts.push(new THREE.Vector3((x - imgW/2) * params.scale, (imgH/2 - y) * params.scale, avg * params.depth));
-                const c = new THREE.Color();
-                params.mode === 'color' ? c.setRGB(r*params.bright, g*params.bright, b*params.bright) : c.setScalar(avg*params.bright);
-                cols.push(c.r, c.g, c.b);
-            }
-            if (pts.length > 1) {
-                const geo = new THREE.BufferGeometry().setFromPoints(pts);
-                geo.setAttribute('color', new THREE.Float32BufferAttribute(cols, 3));
-                linesGroup.add(new THREE.Line(geo, mat));
-            }
-        }
-        isProcessing = false;
+        init();
     }
-
-    function animate() {
-        requestAnimationFrame(animate);
-        if (sourceType === 'video' && videoEl.readyState >= 2) {
-            procCtx.drawImage(videoEl, 0, 0, procCanvas.width, procCanvas.height);
-            updateGeometry();
-        }
-        currRot.x += (targetRot.x - currRot.x) * 0.1;
-        currRot.y += (targetRot.y - currRot.y) * 0.1;
-        linesGroup.rotation.set(currRot.x, currRot.y, 0);
-        renderer.render(scene, camera);
-    }
-
-    window.onresize = () => {
-        const c = document.getElementById('viewport');
-        camera.aspect = c.clientWidth / c.clientHeight;
-        camera.updateProjectionMatrix();
-        renderer.setSize(c.clientWidth, c.clientHeight);
-    };
 </script>
 </body>
 </html>
