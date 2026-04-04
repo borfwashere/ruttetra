@@ -2,7 +2,7 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>Rutt-Etra Studio v1.7 - Borsec Francisco</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -12,7 +12,7 @@
             font-family: 'MS Sans Serif', Arial, sans-serif; 
             overflow: hidden; display: flex; align-items: center; justify-content: center; 
             height: 100vh; width: 100vw; position: fixed;
-            user-select: none; /* Evita que seleccionen y copien textos */
+            user-select: none; -webkit-user-select: none;
         }
 
         .window { 
@@ -37,7 +37,7 @@
             background: #c0c0c0; padding: 6px; border-top: 2px solid #fff; 
             display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); 
             gap: 6px; flex-shrink: 0; max-height: 40vh; overflow-y: auto;
-            touch-action: pan-y;
+            touch-action: pan-y; -webkit-overflow-scrolling: touch;
         }
 
         .control-group { 
@@ -56,6 +56,7 @@
             border-color: #fff #666 #666 #fff;
             cursor: pointer; font-size: 10px; font-weight: bold;
             display: flex; align-items: center; justify-content: center;
+            -webkit-appearance: none;
         }
 
         .win-btn:active, .active-mode { border-color: #666 #fff #fff #666; background: #d4d4d4; }
@@ -68,7 +69,7 @@
             -webkit-appearance: none; appearance: none;
             width: 50px; height: 30px; background: transparent;
             transform: rotate(-90deg); position: absolute; top: 25px;
-            cursor: pointer; z-index: 10; touch-action: auto;
+            cursor: pointer; z-index: 10; touch-action: none;
         }
         
         input[type=range].vertical-fader::-webkit-slider-thumb {
@@ -90,7 +91,7 @@
             <span class="group-label">Source</span>
             <button class="win-btn" onclick="document.getElementById('file-input').click()">LOAD MEDIA</button>
             <div id="status">READY</div>
-            <input type="file" id="file-input" style="display:none" accept="image/*,video/mp4">
+            <input type="file" id="file-input" style="display:none" accept="image/*,video/*">
             <div style="display:flex; gap:4px; width:100%;">
                 <button id="btnColor" class="win-btn active-mode">RGB</button>
                 <button id="btnBW" class="win-btn">B&N</button>
@@ -141,15 +142,13 @@
     </div>
 </div>
 
-<video id="hidden-video" loop muted playsinline style="display:none;"></video>
+<video id="hidden-video" loop muted playsinline autoplay style="display:none; webkit-playsinline: true;"></video>
 <canvas id="hidden-canvas" style="display:none;"></canvas>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
 <script>
-    /** CAPA DE PROTECCIÓN PASIVA **/
     (function(){
-        // Bloquea F12, Ctrl+Shift+I/J, Ctrl+U
         window.addEventListener('keydown', function(e) {
             if (e.keyCode == 123 || 
                 (e.ctrlKey && e.shiftKey && (e.keyCode == 73 || e.keyCode == 74)) || 
@@ -160,7 +159,6 @@
         });
     })();
 
-    /** LÓGICA PRINCIPAL **/
     {
         let scene, camera, renderer, linesGroup;
         const DEFAULT_PARAMS = { spacing: 6, scale: 2.5, bright: 1, depth: 77, mode: 'color' };
@@ -170,7 +168,7 @@
         
         const videoEl = document.getElementById('hidden-video');
         const procCanvas = document.getElementById('hidden-canvas');
-        const procCtx = procCanvas.getContext('2d', { alpha: false });
+        const procCtx = procCanvas.getContext('2d', { alpha: false, willReadFrequently: true });
         const statusEl = document.getElementById('status');
         let sourceType = null, isProcessing = false;
         const PROC_RES = 160;
@@ -212,18 +210,19 @@
             window.addEventListener('mouseup', () => isDown = false);
             
             container.addEventListener('touchstart', e => {
+                e.preventDefault();
                 if (e.touches.length === 2) initialPinchDist = getDist(e.touches);
                 else start(e.touches[0].clientX, e.touches[0].clientY);
             }, { passive: false });
 
             container.addEventListener('touchmove', e => {
+                e.preventDefault();
                 if (e.touches.length === 2) {
                     let dist = getDist(e.touches);
                     camera.position.z -= (dist - initialPinchDist) * 2;
                     camera.position.z = Math.max(100, Math.min(camera.position.z, 5000));
                     initialPinchDist = dist;
                 } else move(e.touches[0].clientX, e.touches[0].clientY);
-                e.preventDefault();
             }, { passive: false });
 
             container.addEventListener('wheel', e => {
